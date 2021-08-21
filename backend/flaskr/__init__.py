@@ -8,24 +8,33 @@ from models import setup_db, Question, Category
 
 QUESTIONS_PER_PAGE = 10
 
+
+
+  # '''
+  # @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs.
+  # '''
 def create_app(test_config=None):
-  # create and configure the app
   app = Flask(__name__)
-  setup_db(app)
-  
-  '''
-  @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs.
-  '''
+  cors = CORS(app, resources={r"/api/": {"origins": "*"}})
 
   '''
   @TODO: Use the after_request decorator to set Access-Control-Allow
   '''
+  @app.after_request()
+  def after_request(response):
+    response.headers.add('Access-Control-Allow-Headers','Content-Type,Authorization,True')
+    response.headers.add('Access-Control-Allow-Methods','GET,POST,DELETE')
+    return response
 
   '''
   @TODO: 
   Create an endpoint to handle GET requests 
   for all available categories.
   '''
+  @app.route("/categories",methods=['GET'])
+  def available_categories():
+    
+    return
 
 
   '''
@@ -34,7 +43,11 @@ def create_app(test_config=None):
   including pagination (every 10 questions). 
   This endpoint should return a list of questions, 
   number of total questions, current category, categories. 
-
+  '''
+  @app.route("/questions/<int: question_id>", methods=["GET"])
+  def questions(question_id):
+    return
+  '''
   TEST: At this point, when you start the application
   you should see questions and categories generated,
   ten questions per page and pagination at the bottom of the screen for three pages.
@@ -44,7 +57,11 @@ def create_app(test_config=None):
   '''
   @TODO: 
   Create an endpoint to DELETE question using a question ID. 
-
+  '''
+  @app.route('/questions/<int: question_id', methods=["DELETE"])
+  def delete_questions(question_id):
+    return
+  '''
   TEST: When you click the trash icon next to a question, the question will be removed.
   This removal will persist in the database and when you refresh the page. 
   '''
@@ -54,7 +71,11 @@ def create_app(test_config=None):
   Create an endpoint to POST a new question, 
   which will require the question and answer text, 
   category, and difficulty score.
-
+  '''
+  @app.route('/quizzes', methods=['POST'])
+  def quizzes():
+    return
+  '''
   TEST: When you submit a question on the "Add" tab, 
   the form will clear and the question will appear at the end of the last page
   of the questions list in the "List" tab.  
@@ -98,7 +119,7 @@ def create_app(test_config=None):
   Create error handlers for all expected errors 
   including 404 and 422. 
   '''
-  
+
   return app
 
-    
+      
