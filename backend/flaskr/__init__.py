@@ -8,6 +8,14 @@ from models import setup_db, Question, Category
 
 QUESTIONS_PER_PAGE = 10
 
+def paginate_questions(selected):
+  page = request.args.get('page', 1, type=int)
+  start = (page - 1) * QUESTIONS_PER_PAGE
+  end = start + QUESTIONS_PER_PAGE
+  questions = [question.format() for question in selected]
+  currentQuestions = questions[start:end]
+  return currentQuestions
+
 
 
   # '''
@@ -31,22 +39,40 @@ def create_app(test_config=None):
   Create an endpoint to handle GET requests 
   for all available categories.
   '''
-  @app.route("/categories",methods=['GET'])
-  def available_categories():
+  @app.route("/categories")
+  def get_categories():
+    categories = Category.query.order_by(Category.type).all()
+    if len(categories) < 1:
+      abort(404)
+    return jsonify({
+      'success': True,
+      'categories': {category.id: category.type for category in categories}
+    })
     
-    return
 
+#  '''
+#  @TODO: 
+#  Create an endpoint to handle GET requests for questions, 
+#  including pagination (every 10 questions). 
+#  This endpoint should return a list of questions, 
+#  number of total questions, current category, categories. 
+#  '''
+  
+  @app.route("/questions")
+  def get_questions():
+    selected = Question.query.order_by(Question.id).all()
+    currentQuestions = paginate_questions(request, selected)
+    categories = Category.query.order_by(Category.type).all()
 
-  '''
-  @TODO: 
-  Create an endpoint to handle GET requests for questions, 
-  including pagination (every 10 questions). 
-  This endpoint should return a list of questions, 
-  number of total questions, current category, categories. 
-  '''
-  @app.route("/questions/<int: question_id>", methods=["GET"])
-  def questions(question_id):
-    return
+    if len(currentQuestions) < 1:
+      abort(404)
+    return jsonify({
+      'success':True,
+      'questions':currentQuestions,
+      'total_questions': len(selected),
+      'categories': {category.id: category.type for category in categories},
+      'current_category': None
+    })
   '''
   TEST: At this point, when you start the application
   you should see questions and categories generated,
@@ -58,9 +84,18 @@ def create_app(test_config=None):
   @TODO: 
   Create an endpoint to DELETE question using a question ID. 
   '''
-  @app.route('/questions/<int: question_id', methods=["DELETE"])
+  @app.route('/questions/<int: question_id>', methods=["DELETE"])
   def delete_questions(question_id):
-    return
+    try:
+      question = Question.query.get(question_id)
+      question.delete()
+      return jsonify({
+        'success': True,
+        'deleted': question_id
+      })
+    except:
+      abort(422)
+
   '''
   TEST: When you click the trash icon next to a question, the question will be removed.
   This removal will persist in the database and when you refresh the page. 
@@ -72,9 +107,33 @@ def create_app(test_config=None):
   which will require the question and answer text, 
   category, and difficulty score.
   '''
-  @app.route('/quizzes', methods=['POST'])
-  def quizzes():
-    return
+  @app.route('/questions', methods=['POST'])
+  def post_question():
+    body = request.get_json()
+    question = body.get('question','')
+    answer = body.get('answer','')
+    difficulty = body.get('difficulty','')
+    category = body.get('category','')
+
+    if (question or answer or difficulty or category) == '':
+      abort(422)
+    
+    try:
+      new_question = Question(
+        question=question,
+        answer=answer,
+        difficulty=difficulty,
+        category =category)
+      question.insert()
+
+      return jsonify({
+        'success': True,
+        'created':question.id,
+        'message':'Question is added!'
+      })
+    except:
+      abort(422)
+    
   '''
   TEST: When you submit a question on the "Add" tab, 
   the form will clear and the question will appear at the end of the last page
@@ -86,7 +145,23 @@ def create_app(test_config=None):
   Create a POST endpoint to get questions based on a search term. 
   It should return any questions for whom the search term 
   is a substring of the question. 
+  '''
+  @app.route('/questions/search', methods=['POST'])
+  def search_questions():
+    body = request.get_json()
+    searchTerm = body.get('searchTerm','')
+    if searchTerm == '':
+      abort(422)
 
+    search_results = Question.query.filter(Question.question.ilike(f'%{search_term}%')).all()
+    return jsonify({
+                'success': True,
+                'questions': [question.format() for question in search_results],
+                'total_questions': len(search_results),
+                'current_category': None
+            })
+
+  '''
   TEST: Search by any phrase. The questions list will update to include 
   only question that include that string within their question. 
   Try using the word "title" to start. 
@@ -95,7 +170,23 @@ def create_app(test_config=None):
   '''
   @TODO: 
   Create a GET endpoint to get questions based on category. 
+  '''
+  @app.route('/categories/<int:category_id/questions>', methods=['GET'])
+  def get_question_by_category(category_id):
+    try:
+      questions = Question.query.filter(Question.category==str(category_id)).all()
+      
+      return jsonify({
+        'success': True,
+        'question':[question.format() for question in questions],
+        'number_of_questions': len(questions),
+        'current_category': category_id
+      })
+    except:
+      abort(404)
 
+    
+  '''
   TEST: In the "List" tab / main screen, clicking on one of the 
   categories in the left column will cause only questions of that 
   category to be shown. 
