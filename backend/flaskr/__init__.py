@@ -85,7 +85,7 @@ def create_app(test_config=None):
   @TODO: 
   Create an endpoint to DELETE question using a question ID. 
   '''
-  @app.route('/questions/<int:question_id>', methods=["DELETE"])
+  @app.route('/questions/<int:id>', methods=['DELETE'])
   def delete_questions(question_id):
     try:
       question = Question.query.get(question_id)
@@ -172,7 +172,7 @@ def create_app(test_config=None):
   @TODO: 
   Create a GET endpoint to get questions based on category. 
   '''
-  @app.route('/categories/<int:category_id/questions>', methods=['GET'])
+  @app.route('/categories/<int:category_id>/questions', methods=['GET'])
   def get_question_by_category(category_id):
     try:
       questions = Question.query.filter(Question.category==str(category_id)).all()
