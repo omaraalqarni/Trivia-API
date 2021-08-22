@@ -23,7 +23,8 @@ def paginate_questions(selected):
   # '''
 def create_app(test_config=None):
   app = Flask(__name__)
-  cors = CORS(app, resources={r"/api/": {"origins": "*"}})
+  setup_db(app)
+  cors = CORS(app, resources={'/': {'origins': '*'}})
 
   '''
   @TODO: Use the after_request decorator to set Access-Control-Allow
@@ -153,7 +154,7 @@ def create_app(test_config=None):
     if searchTerm == '':
       abort(422)
 
-    search_results = Question.query.filter(Question.question.ilike(f'%{search_term}%')).all()
+    search_results = Question.query.filter(Question.question.ilike(f'%{searchTerm}%')).all()
     return jsonify({
                 'success': True,
                 'questions': [question.format() for question in search_results],
@@ -199,7 +200,37 @@ def create_app(test_config=None):
   This endpoint should take category and previous question parameters 
   and return a random questions within the given category, 
   if provided, and that is not one of the previous questions. 
+  '''
+  @app.route('/quizzes', methods=['POST'])
+  def start_quiz():
+    body = request.get_json
+    category = body.get('category')
+    previous_questions = body.get('previous_questions')
+    if (category is None) or ( previous_questions is None):
+      abort(400)
 
+    if (category['id'] == 0):
+          questions = Question.query.all()
+    else:
+      questions = Question.query.filter_by(category=category['id']).all()
+
+    def get_random_question():
+        return questions[random.randint(0, len(questions)-1)]
+    next_question = get_random_question()
+
+    exists = True
+    while exists:
+      if next_question.id in previous_questions:
+          next_question = get_random_question()
+      else:
+          exists = False
+
+    return jsonify({
+          'success': True,
+          'question': next_question.format(),
+      }), 200
+      
+  '''
   TEST: In the "Play" tab, after a user selects "All" or a category,
   one question at a time is displayed, the user is allowed to answer
   and shown whether they were correct or not. 
