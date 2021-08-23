@@ -66,7 +66,6 @@ def create_app(test_config=None):
   def get_questions():
     selected = Question.query.order_by(Question.id).all()
     current_question_page = pagination(request,selected)
-    #query categories to add the info to questions
     categories = Category.query.order_by(Category.type).all()
     if len(current_question_page) == 0:
       abort(404)
@@ -133,15 +132,15 @@ def create_app(test_config=None):
     data = request.get_json()
     searchTerm = data.get('searchTerm')
     search_results = Question.query.filter(Question.question.ilike(f"%{searchTerm}%")).all()
-    questions = pagination(request,search_results)
-    total_of_questions = len(questions)
-    if total_of_questions == 0:
+    question = pagination(request,search_results)
+    total_questions = len(question)
+    if total_questions == 0:
       abort(404)
     return jsonify({
       'success':True,
-      'total_questions': total_of_questions,
-      'questions':questions,
-      'current_category': None 
+      'total_questions': total_questions,
+      'question':question,
+
     })
     
 
@@ -163,7 +162,7 @@ def create_app(test_config=None):
       'success':True,
       'questions':questions,
       'total_questions': total_of_questions,
-      'current_category': category_id
+      'current_category': selected.type
      })
 
   '''
@@ -178,23 +177,36 @@ def create_app(test_config=None):
   '''
   @app.route('/quizzes',methods=['POST'])
   def start_quiz():
-    data = request.get_json()
-    previous_questions = data.get("previous_questions")
-    quiz_category = data.get("quiz_category")
-    quiz_category_id = int(quiz_category["id"])
+    body = request.get_json()
+    previous_questions = body.get('previous_questions')
+    quiz_category = body.get('quiz_category')
 
-    question = Question.query.filter(
-        Question.id.notin_(previous_questions)
-    )
+    if (quiz_category or previous_questions )is None:
+        abort(400)
 
-    # quiz category id is 0 if all is selected and therefore false
-    if quiz_category_id:
-        question = question.filter_by(category=quiz_category_id)
+    if (quiz_category['id'] == 0):
+        questions = Question.query.all()
+    else:
+        questions = Question.query.filter_by(
+            category=quiz_category['id']).all()
 
-    # limit result to only one question
-    question = question.first().format()
+    def get_random_question():
+        return questions[random.randint(0, len(questions)-1)]
 
-    return jsonify({"success": True, "question": question, }), 200
+    next_question = get_random_question()
+
+
+    exists = True
+    while exists:
+        if next_question.id in previous_questions:
+            next_question = get_random_question()
+        else:
+            exists = False
+
+    return jsonify({
+        'success': True,
+        'question': next_question.format()
+    })
   '''
   @TODO: 
   Create error handlers for all expected errors 
@@ -206,7 +218,7 @@ def create_app(test_config=None):
       'success': False,
       'error_code': 400,
       'message': 'Bad request'
-    })
+    }),400
   
   @app.errorhandler(404)
   def page_not_found(error):
@@ -214,7 +226,7 @@ def create_app(test_config=None):
       'success': False,
       'error_code': 404,
       'message':'Page not found'
-    })
+    }),404
 
   @app.errorhandler(422)
   def unprocessable(error):
@@ -222,7 +234,7 @@ def create_app(test_config=None):
       'success': False,
       'error_code': 422,
       'message': 'page is unprocessable'
-    })
+    }),422
 
 
   
