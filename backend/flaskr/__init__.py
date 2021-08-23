@@ -169,31 +169,39 @@ def create_app(test_config=None):
   '''
   @app.route('/quizzes', methods=['POST'])
   def start_quiz():
-    try:
-        body = request.get_json()
-        if not ('quiz_category' in body and 'previous_questions' in body):
-            abort(422)
 
-        category = body.get('quiz_category')
-        previous_questions = body.get('previous_questions')
+      body = request.get_json()
+      previous_questions = body.get('previous_questions')
+      quiz_category = body.get('quiz_category')
 
-        if category['type'] == 'click':
-            available_questions = Question.query.filter(
-                Question.id.notin_((previous_questions))).all()
-        else:
-            available_questions = Question.query.filter_by(
-                category=category['id']).filter(Question.id.notin_((previous_questions))).all()
+      if (quiz_category or previous_questions )is None:
+          abort(400)
 
-        new_question = available_questions[random.randrange(
-            0, len(available_questions))].format() if len(available_questions) > 0 else None
+      if (quiz_category['id'] == 0):
+          questions = Question.query.all()
+      else:
+          questions = Question.query.filter_by(
+              category=quiz_category['id']).all()
 
-        return jsonify({
-            'success': True,
-            'question': new_question
-        })
-    except:
-        abort(422)
+      def get_random_question():
+          return questions[random.randint(0, len(questions)-1)]
 
+      next_question = get_random_question()
+
+    
+      exists = True
+      while exists:
+          if next_question.id in previous_questions:
+              next_question = get_random_question()
+          else:
+              exists = False
+
+      return jsonify({
+          'success': True,
+          'question': next_question.format(),
+      }), 200
+
+  
 
 
   '''
@@ -203,11 +211,11 @@ def create_app(test_config=None):
   '''
 
   @app.errorhandler(404)
-  def not_found(error):
+  def not_exists(error):
       return jsonify({
           "success": False,
           "error": 404,
-          "message": "resource not found"
+          "message": "resource not exists"
       }), 404
 
   @app.errorhandler(422)

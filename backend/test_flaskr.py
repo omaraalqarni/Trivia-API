@@ -16,7 +16,9 @@ class TriviaTestCase(unittest.TestCase):
         self.client = self.app.test_client
         self.database_name = "trivia_test"
         self.database_path ="postgres://{}/{}".format('localhost:5432', self.database_name)
+        #self.database_path ='postgresql://postgres:509018@localhost:5432/trivia_test'
         setup_db(self.app, self.database_path)
+        
 
         # binds the app to the current context
         with self.app.app_context():
@@ -49,7 +51,7 @@ class TriviaTestCase(unittest.TestCase):
 
         self.assertEqual(res.status_code, 404)
         self.assertEqual(data['success'], False)
-        self.assertEqual(data['message'], 'resource not found')
+        self.assertEqual(data['message'], 'resource not exists')
 
     def test_get_categories(self):
         res = self.client().get('/categories')
@@ -65,7 +67,7 @@ class TriviaTestCase(unittest.TestCase):
 
         self.assertEqual(res.status_code, 404)
         self.assertEqual(data['success'], False)
-        self.assertEqual(data['message'], 'resource not found')
+        self.assertEqual(data['message'], 'resource not exists')
 
     def test_delete_question(self):
         question = Question(question='new question', answer='new answer',
@@ -140,7 +142,7 @@ class TriviaTestCase(unittest.TestCase):
 
         self.assertEqual(res.status_code, 404)
         self.assertEqual(data["success"], False)
-        self.assertEqual(data["message"], "resource not found")
+        self.assertEqual(data["message"], "resource not exists")
 
     def test_get_question_by_category(self):
         res = self.client().get('/categories/1/questions')
@@ -158,26 +160,46 @@ class TriviaTestCase(unittest.TestCase):
 
         self.assertEqual(res.status_code, 404)
         self.assertEqual(data["success"], False)
-        self.assertEqual(data["message"], "resource not found")
+        self.assertEqual(data["message"], "resource not exists")
 
-    def test_play_quiz(self):
-        new_quiz_round = {'previous_questions': [],
-                          'quiz_category': {'type': 'Entertainment', 'id': 5}}
+    def test_play_quiz_questions(self):
 
-        res = self.client().post('/quizzes', json=new_quiz_round)
-        data = json.loads(res.data)
+        # example request data
+        request_data = {
+            'previous_questions': [5, 9],
+            'quiz_category': {
+                'type': 'History',
+                'id': 4
+            }
+        }
 
-        self.assertEqual(res.status_code, 200)
+        # make request and process response
+        response = self.client().post('/quizzes', json=request_data)
+        data = json.loads(response.data)
+
+        # Assertions
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(data['success'], True)
+        self.assertTrue(data['question'])
 
-    def test_404_play_quiz(self):
-        new_quiz_round = {'previous_questions': []}
-        res = self.client().post('/quizzes', json=new_quiz_round)
-        data = json.loads(res.data)
+        # Ensures previous questions are not returned
+        self.assertNotEqual(data['question']['id'], 5)
+        self.assertNotEqual(data['question']['id'], 9)
 
-        self.assertEqual(res.status_code, 422)
-        self.assertEqual(data["success"], False)
-        self.assertEqual(data["message"], "unprocessable")
+        # Ensures returned question is in the correct category
+        self.assertEqual(data['question']['category'], 4)
+
+    def test_no_data_to_play_quiz(self):
+        """Test for the case where no data is sent"""
+
+        # process response from request without sending data
+        response = self.client().post('/quizzes', json={})
+        data = json.loads(response.data)
+
+        # Assertions
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], 'bad request')
 
 
 # Make the tests conveniently executable
