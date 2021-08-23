@@ -17,6 +17,7 @@ class TriviaTestCase(unittest.TestCase):
         self.database_name = "trivia_test"
         self.database_path = "postgres://{}/{}".format('localhost:5432', self.database_name)
         setup_db(self.app, self.database_path)
+        
 
         # binds the app to the current context
         with self.app.app_context():
