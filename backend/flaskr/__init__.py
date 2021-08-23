@@ -29,7 +29,7 @@ def create_app(test_config=None):
   '''
   @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
   '''
-  cors(app,resources('/'), origin('*'))
+  cors = CORS(app,resources={"r/*": {"origins": "*"}})
 
   '''
   @TODO: Use the after_request decorator to set Access-Control-Allow
@@ -131,14 +131,14 @@ def create_app(test_config=None):
   @app.route('/questions/search', method=['POST'])
   def search_questions():
     data = request.get_json()
-    searchTerm = data.get(searchTerm)
-    search_results = Question.query.filter(Question.question.ilike(f"%{search_term}%")).all()
+    searchTerm = data.get('searchTerm')
+    search_results = Question.query.filter(Question.question.ilike(f"%{searchTerm}%")).all()
     questions = pagination(request,search_results)
     total_of_questions = len(questions)
     if total_of_questions == 0:
       abort(404)
     return jsonify({
-      'success':true,
+      'success':True,
       'total_questions': total_of_questions,
       'questions':questions,
       'current_category': None 
@@ -200,6 +200,31 @@ def create_app(test_config=None):
   Create error handlers for all expected errors 
   including 404 and 422. 
   '''
+  @app.errorhandler(400)
+  def bad_request(error):
+    return jsonify({
+      'success': False,
+      'error_code': 400,
+      'message': 'Bad request'
+    })
+  
+  @app.errorhandler(404)
+  def page_not_found(error):
+    return jsonify({
+      'success': False,
+      'error_code': 404,
+      'message':'Page not found'
+    })
+
+  @app.errorhandler(422)
+  def unprocessable(error):
+    return({
+      'success': False,
+      'error_code': 422,
+      'message': 'page is unprocessable'
+    })
+
+
   
   return app
 
