@@ -72,7 +72,7 @@ def create_app(test_config=None):
     return jsonify({
       'success': True,
       'questions': current_question_page,
-      'total_question' : len(selected),
+      'total_questions' : len(selected),
       'categories': {category.id: category.type for category in categories}
     })
      
@@ -84,16 +84,18 @@ def create_app(test_config=None):
   TEST: When you click the trash icon next to a question, the question will be removed.
   This removal will persist in the database and when you refresh the page. 
   '''
-  @app.route('/questions/<question_id>',methods=['DELETE'])
+  @app.route('/questions/<int:question_id>',methods=['DELETE'])
   def delete_question(question_id):
     try:
-       question = Question.query.get(question_id)
-       return jsonify({
-         'success': True,
-         'message': 'question deleted'
-       })
+      question = Question.query.get(question_id)
+      question.delete()
+      return jsonify({
+        'success': True,
+        'message': 'question deleted',
+       }),200
+
     except:
-        abort(422)
+      abort(422)
 
   '''
   @TODO: 
@@ -116,8 +118,8 @@ def create_app(test_config=None):
     new_question.insert()
     return jsonify({
       'success':True,
-      'message': 'question added'
-    })
+      'message': 'question added',
+    }),200
   '''
   @TODO: 
   Create a POST endpoint to get questions based on a search term. 
@@ -127,21 +129,25 @@ def create_app(test_config=None):
   only question that include that string within their question. 
   Try using the word "title" to start. 
   '''
-  @app.route('/questions/search', method=['POST'])
+  @app.route('/questions/search', methods=['POST'])
   def search_questions():
     data = request.get_json()
-    searchTerm = data.get('searchTerm')
-    search_results = Question.query.filter(Question.question.ilike(f"%{searchTerm}%")).all()
-    question = pagination(request,search_results)
-    total_questions = len(question)
-    if total_questions == 0:
+    searchTerm = data.get('searchTerm',None)
+    
+    if searchTerm is None:
+      abort(422)
+
+    search_results = Question.query.filter(Question.question.ilike(f'%{searchTerm}%')).all()
+    if len(search_results) == 0:
       abort(404)
+
+    question = pagination(request,search_results)
+    
     return jsonify({
       'success':True,
       'total_questions': total_questions,
       'question':question,
-
-    })
+    }),200
     
 
   '''
@@ -151,7 +157,7 @@ def create_app(test_config=None):
   categories in the left column will cause only questions of that 
   category to be shown. 
   '''
-  @app.route('/categories/<int:category_id/questions', methods=['GET'])
+  @app.route('/categories/<int:category_id>/questions', methods=['GET'])
   def get_questions_by_categories(category_id):
     selected = Question.query.filter_by(category=category_id).all()
     questions = pagination(request,selected)
@@ -162,7 +168,7 @@ def create_app(test_config=None):
       'success':True,
       'questions':questions,
       'total_questions': total_of_questions,
-      'current_category': selected.type
+      'current_category': category_id
      })
 
   '''
