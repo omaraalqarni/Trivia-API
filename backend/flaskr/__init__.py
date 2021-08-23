@@ -44,7 +44,7 @@ def create_app(test_config=None):
   Create an endpoint to handle GET requests 
   for all available categories.
   '''
-  @app.route('/categories')
+  @app.route('/categories', methods=['GET'])
   def get_categories():
     categories = Category.query.order_by(Category.id).all()
     if len(categories) == 0:
@@ -218,7 +218,7 @@ def create_app(test_config=None):
 
   @app.errorhandler(422)
   def unprocessable(error):
-    return({
+    return jsonify({
       'success': False,
       'error_code': 422,
       'message': 'page is unprocessable'
