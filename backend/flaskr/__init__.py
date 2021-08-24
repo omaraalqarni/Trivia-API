@@ -132,12 +132,12 @@ def create_app(test_config=None):
   @app.route('/questions/search', methods=['POST'])
   def search_questions():
     data = request.get_json()
-    searchTerm = data.get('searchTerm',None)
+    search_term = data.get('searchTerm','')
     
-    if searchTerm is None:
+    if search_term == '':
       abort(422)
 
-    search_results = Question.query.filter(Question.question.ilike(f'%{searchTerm}%')).all()
+    search_results = Question.query.filter(Question.question.ilike(f'%{search_term}%')).all()
     if len(search_results) == 0:
       abort(404)
 
@@ -145,8 +145,8 @@ def create_app(test_config=None):
     
     return jsonify({
       'success':True,
-      'total_questions': total_questions,
-      'question':question,
+      'questions':question,
+      'total_questions': len(search_results)
     }),200
     
 
