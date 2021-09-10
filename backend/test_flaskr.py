@@ -102,25 +102,31 @@ class TriviaTestCase(unittest.TestCase):
 
     # test add question & test 422
 
-    def test_add_question_and_unprocessable(self):
+    def test_add_question_success(self):
         test_question = {
             'question': 'What does FSND mean',
             'answer': 'Full Stack Nanodegree',
             'difficulty': 1,
             'category': 1
         }
-        num_questions_before = len(Question.query.all())
         res = self.client().post('/questions', json=test_question)
         data = json.loads(res.data)
-        num_questions_after = len(Question.query.all())
-        if num_questions_after == (num_questions_before + 1):
-            self.assertEqual(res.status_code, 200)
-            self.assertEqual(data['success'], True)
-            self.assertEqual(data['message'], 'question added')
-        else:
-            self.assertEqual(res.status_code, 422)
-            self.assertEqual(data['success'], False)
-            self.assertEqual(data['message'], 'page is unprocessable')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(data['success'], True)
+        self.assertEqual(data['message'], 'question added')
+       
+    def add_empty_question(self):
+        test_question = {
+            'question':'',
+            'answer':'',
+            'difficulty':'',
+            'category':''
+        }
+        res = self.client().post('/questions', json=test_question)
+        data = json.loads(res.data)
+        self.assertEqual(res.status_code, 422)
+        self.assertEqual(data['success'], False)
+        self.assertEqual(data['message'], 'page is unprocessable')
 
     # test search_questions
     def test_search_questions(self):
